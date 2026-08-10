@@ -1,0 +1,21 @@
+# ── Dependências ──────────────────────────────
+node_modules/
+
+# ── Builds e empacotamento ────────────────────
+dist/
+build/
+release/
+
+# ── Logs ──────────────────────────────────────
+*.log
+npm-debug.log*
+dev.log
+
+# ── Ferramentas / SO ──────────────────────────
+.vscode/
+.qwen/
+.DS_Store
+Thumbs.db
+
+# ── Arquivos temporários ──────────────────────
+*.tmp

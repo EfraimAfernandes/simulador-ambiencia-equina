@@ -1,0 +1,81 @@
+{
+  "name": "projeto-ambiencia-equina",
+  "version": "1.0.0",
+  "description": "Simulação 3D termodinâmica e psicrométrica de estábulo equino — Gêmeo Digital",
+  "author": "Efraim Almeida Fernandes, Hallison Bittencourt Santos, Geovana Bertoldo de Souza Alves (UFR/ICAT — Eng. Agrícola e Ambiental; orientador: Prof. Jofran Luiz de Oliveira)",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:dir": "npm run build && electron-builder --dir",
+    "electron:build:msi": "npm run build && electron-builder --win msi"
+  },
+  "build": {
+    "appId": "com.projetoambiencia.simulador-equino",
+    "productName": "Simulador de Ambiencia Equina",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
+    },
+    "msi": {
+      "oneClick": false,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Simulador Ambiencia Equina",
+      "additionalLightArgs": [
+        "-sval"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Simulador Ambiencia Equina"
+    }
+  },
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.160.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^43.0.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.12",
+    "wait-on": "^7.2.0"
+  }
+}

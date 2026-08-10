@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--
+    SIMULADOR DE AMBIÊNCIA EQUINA — UFR/ICAT
+    Curso de Engenharia Agrícola e Ambiental
+    Autores: Efraim Almeida Fernandes · Hallison Bittencourt Santos · Geovana Bertoldo de Souza Alves
+    Orientador: Prof. Jofran Luiz de Oliveira
+  -->
+  <meta name="author" content="Efraim Almeida Fernandes, Hallison Bittencourt Santos, Geovana Bertoldo de Souza Alves — UFR/ICAT, orientador Prof. Jofran Luiz de Oliveira">
+  <title>Simulador de Ambiência Equina & Termodinâmica (Digital Twin)</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app-container">
+    <!-- 3D Canvas Background -->
+    <div id="canvas-container"></div>
+
+    <!-- Header Panel -->
+    <header class="glass-panel">
+      <div class="logo-area">
+        <h1>AMBIÊNCIA EQUINA</h1>
+        <p>Gêmeo Digital Termodinâmico & Psicrométrico</p>
+      </div>
+      <div class="header-status">
+        <div class="status-badge">
+          <span>Modo:</span>
+          <strong id="mode-badge-label">SIMULAÇÃO</strong>
+        </div>
+        <div class="status-badge">
+          <div class="status-dot" id="arduino-status-dot"></div>
+          <span id="arduino-status-label">Arduino: Desconectado</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sidebar Panel: Controls -->
+    <aside class="glass-panel">
+      <button id="btn-toggle-sidebar" class="sidebar-toggle-btn" title="Ocultar/Exibir Painel Lateral">◀</button>
+      <nav class="tab-navigation">
+        <button class="tab-btn active" data-tab="tab-physics">FÍSICA</button>
+        <button class="tab-btn" data-tab="tab-ventilation">VENTILAÇÃO</button>
+        <button class="tab-btn" data-tab="tab-envelope">CONSTRUÇÃO</button>
+        <button class="tab-btn" data-tab="tab-arduino">ARDUINO IoT</button>
+        <button class="tab-btn" data-tab="tab-debug">DEBUG FILTRO</button>
+      </nav>
+
+      <!-- TAB 1: PHYSICS & CLIMATE -->
+      <section class="tab-content active" id="tab-physics">
+        <h2 class="section-title">Presets de Cenário</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:15px;">
+          <button class="btn-premium" id="btn-preset-traditional" style="font-size:0.55rem; padding:6px; background:linear-gradient(135deg, rgba(239,68,68,0.2), rgba(0,0,0,0.3)); border:1px solid rgba(239,68,68,0.4);">Tradicional (Quente)</button>
+          <button class="btn-premium" id="btn-preset-ideal" style="font-size:0.55rem; padding:6px; background:linear-gradient(135deg, rgba(16,185,129,0.2), rgba(0,0,0,0.3)); border:1px solid rgba(16,185,129,0.4);">Premium (Isolado)</button>
+          <button class="btn-premium" id="btn-preset-critical" style="font-size:0.55rem; padding:6px; grid-column:span 2; background:linear-gradient(135deg, rgba(245,158,11,0.25), rgba(0,0,0,0.3)); border:1px solid rgba(245,158,11,0.45);">Onda de Calor Crítica</button>
+        </div>
+
+        <h2 class="section-title">Clima Externo</h2>
+        
+        <div class="control-group">
+          <label class="control-label">
+            Temperatura Externa: 
+            <span class="control-val"><span id="val-t-ext">25</span> °C</span>
+          </label>
+          <input type="range" id="slide-t-ext" min="15" max="40" step="0.5" value="28">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Umidade Relativa Externa: 
+            <span class="control-val"><span id="val-rh-ext">60</span> %</span>
+          </label>
+          <input type="range" id="slide-rh-ext" min="20" max="95" step="1" value="65">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Radiação Solar: 
+            <span class="control-val"><span id="val-solar">500</span> W/m²</span>
+          </label>
+          <input type="range" id="slide-solar" min="0" max="1000" step="10" value="400">
+        </div>
+
+        <h2 class="section-title">Geração Interna</h2>
+
+        <div class="control-group">
+          <label class="control-label">
+            Número de Cavalos: 
+            <span class="control-val"><span id="val-horses">4</span> / 4</span>
+          </label>
+          <input type="range" id="slide-horses" min="0" max="4" step="1" value="4">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Atividade Metabólica</label>
+          <select id="select-activity">
+            <option value="resting" selected>Em Repouso (Sensível: 600W | Vapor: 0.58kg/h)</option>
+            <option value="eating">Alimentando-se (Sensível: 850W | Vapor: 0.86kg/h)</option>
+            <option value="sweating">Estressado/Ofegante (Sensível: 250W | Vapor: 2.16kg/h)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Umidade da Cama: 
+            <span class="control-val"><span id="val-bedding">20</span> %</span>
+          </label>
+          <input type="range" id="slide-bedding" min="0" max="100" step="5" value="20">
+        </div>
+      </section>
+
+      <!-- TAB 2: VENTILATION -->
+      <section class="tab-content" id="tab-ventilation">
+        <h2 class="section-title">Estratégia de Controle</h2>
+        
+        <div class="switch-group">
+          <span class="switch-label">Controle por Histerese (Arduino Mock)</span>
+          <label class="switch-container">
+            <input type="checkbox" id="toggle-auto-control">
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+        <p class="formula-desc" style="margin-top:-10px;">
+          Liga ventiladores ao atingir &ge; 28.0 °C e desliga ao resfriar &le; 25.0 °C.
+        </p>
+
+        <h2 class="section-title">Ventilação Mecânica</h2>
+
+        <div class="control-group">
+          <label class="control-label">
+            Exaustor (RPM / Vazão): 
+            <span class="control-val"><span id="val-fan">2000</span> m³/h</span>
+          </label>
+          <input type="range" id="slide-fan" min="0" max="6000" step="100" value="0">
+        </div>
+
+        <h2 class="section-title">Ventilação Natural</h2>
+
+        <div class="control-group" style="margin-bottom: 12px;">
+          <label class="control-label">Escala térmica (partículas e overlays)</label>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.7rem;">
+            <span style="color: #2563eb; font-weight: 600;">Frio</span>
+            <span style="color: var(--text-secondary);">15°C</span>
+            <div style="flex: 1; height: 10px; border-radius: 4px; background: linear-gradient(to right, #2563eb, #06b6d4, #22c55e, #eab308, #f97316, #ef4444);" title="Azul/ciano = frio · Laranja/vermelho = quente"></div>
+            <span style="color: var(--text-secondary);">40°C</span>
+            <span style="color: #ef4444; font-weight: 600;">Quente</span>
+          </div>
+          <p class="formula-desc">Azul e ciano indicam ar frio. Verde e amarelo indicam conforto. Laranja e vermelho indicam calor e estresse térmico.</p>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Abertura de Cortinas: 
+            <span class="control-val"><span id="val-curtain">50</span> %</span>
+          </label>
+          <input type="range" id="slide-curtain" min="0" max="100" step="5" value="50">
+        </div>
+      </section>
+
+      <!-- TAB 3: ENVELOPE / CONSTRUTIVO -->
+      <section class="tab-content" id="tab-envelope">
+        <h2 class="section-title">Preset Construtivo</h2>
+        <div class="control-group">
+          <label class="control-label">Estrutura e Vedações</label>
+          <select id="select-structural-preset" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); color: white; border: 1px solid rgba(255, 255, 255, 0.15); font-family: var(--font-main); font-size: 0.75rem; outline: none; margin-bottom: 8px;">
+            <option value="traditional" selected>Tradicional (Quente / Ventilado por Frestas)</option>
+            <option value="premium">Premium (Isolado / Selado com Teto Plano)</option>
+          </select>
+          <p class="formula-desc">Modifica a geometria do estábulo (telhado aberto com lanternim vs forro plano selado) e a física (taxa de infiltração, wind advection e atraso térmico).</p>
+        </div>
+
+        <h2 class="section-title">Materiais da Cobertura</h2>
+        
+        <div class="control-group">
+          <label class="control-label">
+            Isolamento do Telhado (U-Value): 
+            <span class="control-val"><span id="val-roof-u">1.5</span> W/m²K</span>
+          </label>
+          <input type="range" id="slide-roof-u" min="0.4" max="3.5" step="0.1" value="1.5">
+          <p class="formula-desc">Valores menores indicam maior isolamento (telha sanduíche). Valores maiores representam telhas metálicas simples.</p>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Sombreamento do Telhado: 
+            <span class="control-val"><span id="val-shading">0</span> %</span>
+          </label>
+          <input type="range" id="slide-shading" min="0" max="100" step="5" value="0">
+        </div>
+
+        <h2 class="section-title">Dimensões da Instalação</h2>
+        <p class="formula-desc">Galpão com 4 baias individuais e corredor central.</p>
+        <div style="font-size:0.8rem; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+          <div>Comprimento (L): <strong>12.0 metros</strong></div>
+          <div>Largura (W): <strong>8.0 metros</strong></div>
+          <div>Pé-Direito Médio (H): <strong>4.5 metros</strong></div>
+          <div>Volume de Controle: <strong>432.0 m³</strong></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: ARDUINO SERIAL CONNECTION -->
+      <section class="tab-content" id="tab-arduino">
+        <h2 class="section-title">Modo do Controlador</h2>
+        <div class="control-group">
+          <label class="control-label">Fonte de Controle</label>
+          <select id="select-iot-mode" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); color: white; border: 1px solid rgba(255, 255, 255, 0.15); font-family: var(--font-main); font-size: 0.75rem; outline: none; margin-bottom: 8px;">
+            <option value="none" selected>Desativado (Simulação Local)</option>
+            <option value="mock">Virtual Arduino (Mock)</option>
+            <option value="hardware">Arduino Físico (Serial)</option>
+          </select>
+          <p class="formula-desc">Mock executa a mesma lógica de histerese do firmware em TypeScript. Hardware usa protocolo compacto via Web Serial.</p>
+        </div>
+
+        <h2 class="section-title">Conexão de Hardware</h2>
+        <p class="formula-desc" style="margin-bottom:10px;">
+          Conecte sua placa Arduino rodando o código <code>ProjetoAmbiencia.ino</code> via porta USB Serial para controle bidirecional com o gêmeo digital.
+        </p>
+
+        <button class="btn-premium" id="btn-connect-serial">
+          CONECTAR ARDUINO SERIAL
+        </button>
+
+        <h2 class="section-title">Console Serial (Monitor)</h2>
+        <div class="arduino-console" id="arduino-console">
+          Offline. Clique no botão acima para conectar...
+        </div>
+        
+        <p class="formula-desc" style="margin-top:5px; font-style:italic;">
+          *Requer navegadores compatíveis com Web Serial (Chrome, Edge ou Opera).
+        </p>
+      </section>
+
+      <!-- TAB 5: SENSOR DEBUG AND EXPORT -->
+      <section class="tab-content" id="tab-debug">
+        <h2 class="section-title">Análise de Filtro & Ruído</h2>
+        <p class="formula-desc" style="margin-bottom:10px;">
+          Mapeia em tempo real a diferença entre o valor Teórico Real (física), o valor Medido (com ruído e oscilação) e o Sinal Filtrado (filtragem EMA de amortecimento).
+        </p>
+
+        <div class="col-header" style="margin-bottom:6px; font-size:0.75rem;">Filtro de Temperatura (°C)</div>
+        <div class="chart-container" style="height:110px; margin-bottom:12px;">
+          <canvas id="chart-sensor-debug-temp"></canvas>
+        </div>
+
+        <div class="col-header" style="margin-bottom:6px; font-size:0.75rem;">Filtro de Umidade Relativa (%)</div>
+        <div class="chart-container" style="height:110px; margin-bottom:15px;">
+          <canvas id="chart-sensor-debug-rh"></canvas>
+        </div>
+
+        <div style="font-size:0.6rem; display:flex; flex-direction:column; gap:4px; background:rgba(0,0,0,0.25); padding:8px; border-radius:6px; margin-bottom:15px; color:var(--text-secondary); border:1px solid rgba(255,255,255,0.05);">
+          <div><span style="color:#ef4444; font-weight:bold;">⬤</span> <strong>Teórico (Real)</strong>: Valor físico do Volume de Controle.</div>
+          <div><span style="color:#f1f5f9; font-weight:bold;">⬤</span> <strong>Medido (Ruidoso)</strong>: Simulação do sinal cru do sensor DHT11.</div>
+          <div><span style="color:#38bdf8; font-weight:bold;">⬤</span> <strong>Filtrado (EMA)</strong>: Média móvel exponencial ($\alpha = 0.05$).</div>
+        </div>
+        
+        <h2 class="section-title">Exportar Dados Zootécnicos</h2>
+        <p class="formula-desc" style="margin-bottom:8px;">
+          Baixe o histórico das variáveis de ambiência (temperatura, umidade) amostradas em intervalos regulares.
+        </p>
+        <button class="btn-premium" id="btn-export-csv" style="width:100%; font-size:0.65rem; padding:8px;">
+          EXPORTAR SÉRIE TEMPORAL (CSV)
+        </button>
+      </section>
+    </aside>
+
+    <!-- Formula Display Overlay (Floating bottom right) -->
+    <div id="formula-display-panel" class="glass-panel">
+      <button id="btn-close-formula" class="formula-close-btn" title="Ocultar Painel de Fórmulas">✕</button>
+      <h3 class="formula-title" id="formula-tab-title">Equação Termodinâmica</h3>
+      <div class="formula-latex" id="formula-math">dU/dt = Q_solar + Q_met + Q_cond + Q_vent</div>
+      <p class="formula-desc" id="formula-desc">
+        Balanço de energia sensível no volume de controle. A variação de energia interna dita o aumento da temperatura do ar do estábulo.
+      </p>
+    </div>
+
+    <!-- HUD Overlay Buttons (Floating top right) -->
+    <div id="hud-overlay">
+      <div class="hud-btn-container">
+        <button class="hud-btn active" id="btn-toggle-formula-hud" title="Exibir/Ocultar Fórmulas">🧮</button>
+        <span class="hud-tooltip">Fórmulas e Relações</span>
+      </div>
+      <div class="hud-btn-container">
+        <button class="hud-btn active" id="btn-toggle-particles">💨</button>
+        <span class="hud-tooltip">Fluxo de Ar (Partículas)</span>
+      </div>
+      <div class="hud-btn-container">
+        <button class="hud-btn active" id="btn-toggle-heatmap">🔥</button>
+        <span class="hud-tooltip">Campo Térmico (Heatmap)</span>
+      </div>
+      <div class="hud-btn-container">
+        <button class="hud-btn active" id="btn-toggle-cv">📦</button>
+        <span class="hud-tooltip">Volume de Controle (Fronteira)</span>
+      </div>
+      <div class="hud-btn-container">
+        <button class="hud-btn" id="btn-play-pause">⏸</button>
+        <span class="hud-tooltip">Pausar/Play Simulação</span>
+      </div>
+      <div class="hud-btn-container">
+        <button class="hud-btn" id="btn-reset">🔄</button>
+        <span class="hud-tooltip">Resetar Simulação</span>
+      </div>
+      <div style="margin-top: 10px; display:flex; flex-direction:column; align-items:center; gap:2px;">
+        <span style="font-size:0.6rem; color:var(--text-secondary); font-weight:600;">Escala Tempo</span>
+        <input type="range" id="slide-time-scale" min="1" max="120" value="60" style="width:50px;">
+        <span id="val-time-scale" style="font-size:0.6rem; font-weight:700; color:var(--color-blue)">60x</span>
+      </div>
+    </div>
+
+    <!-- Bottom Dashboard: Metrics & Charts -->
+    <footer id="dashboard-panel" class="glass-panel">
+      <button id="btn-toggle-dashboard" class="panel-toggle-btn" title="Ocultar/Exibir Painel de Métricas">
+        <span class="toggle-icon">▼</span> <span class="toggle-text">Ocultar Painel</span>
+      </button>
+      <!-- Col 1: Conforto Animal -->
+      <div class="dashboard-col">
+        <div class="col-header">Conforto Térmico Equino</div>
+        <div class="comfort-summary">
+          <div style="display:flex; align-items:baseline; gap:8px;">
+            <span class="comfort-index-big" id="val-comfort-idx">105</span>
+            <span style="font-size:0.8rem; color:var(--text-secondary)">Índice (T°F + UR%)</span>
+          </div>
+          <div class="comfort-status-label" id="val-comfort-status">Confortável</div>
+          <div class="welfare-tip" id="val-welfare-tip">
+            Temperatura e umidade dentro do ideal. Os mecanismos de troca de calor latente (sudorese) funcionam sem sobrecarga metabólica.
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 2: Fluxos de Energia -->
+      <div class="dashboard-col">
+        <div class="col-header">Balanço de Energia Sensível (Volume de Controle)</div>
+        <div class="energy-bar-container">
+          <div class="energy-row">
+            <div class="energy-info">
+              <span class="energy-label">Geração Metabólica (Animais)</span>
+              <span class="energy-value" style="color: var(--color-blue)" id="val-q-met">+2400 W</span>
+            </div>
+            <div class="energy-bar-bg">
+              <div class="energy-bar-fill" id="bar-q-met" style="background-color: var(--color-blue)"></div>
+            </div>
+          </div>
+
+          <div class="energy-row">
+            <div class="energy-info">
+              <span class="energy-label">Carga Solar (Cobertura)</span>
+              <span class="energy-value" style="color: var(--color-amber)" id="val-q-sol">+450 W</span>
+            </div>
+            <div class="energy-bar-bg">
+              <div class="energy-bar-fill" id="bar-q-sol" style="background-color: var(--color-amber)"></div>
+            </div>
+          </div>
+
+          <div class="energy-row">
+            <div class="energy-info">
+              <span class="energy-label">Condução pela Envoltória (Paredes/Teto)</span>
+              <span class="energy-value" id="val-q-cond">-350 W</span>
+            </div>
+            <div class="energy-bar-bg">
+              <div class="energy-bar-fill" id="bar-q-cond" style="background-color: var(--text-secondary)"></div>
+            </div>
+          </div>
+
+          <div class="energy-row">
+            <div class="energy-info">
+              <span class="energy-label">Ventilação / Troca de Ar</span>
+              <span class="energy-value" id="val-q-vent">-1800 W</span>
+            </div>
+            <div class="energy-bar-bg">
+              <div class="energy-bar-fill" id="bar-q-vent" style="background-color: var(--color-cyan)"></div>
+            </div>
+          </div>
+
+          <div class="energy-net-glow">
+            <span>Fluxo Líquido (dU/dt):</span>
+            <span id="val-net-flow" style="color: var(--color-green)">+700 W (Ganhando calor)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 3: Gráficos de Temperatura e Umidade -->
+      <div class="dashboard-col" style="grid-column: span 1; display:flex; flex-direction:row; gap:10px;">
+        <div style="flex:1; display:flex; flex-direction:column;">
+          <div class="col-header" style="margin-bottom:6px; font-size:0.75rem;">Temperatura Interna vs Externa</div>
+          <div class="chart-container">
+            <canvas id="chart-temp"></canvas>
+          </div>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column;">
+          <div class="col-header" style="margin-bottom:6px; font-size:0.75rem;">Umidade Relativa Int vs Ext</div>
+          <div class="chart-container">
+            <canvas id="chart-rh"></canvas>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/app.ts"></script>
+</body>
+</html>
