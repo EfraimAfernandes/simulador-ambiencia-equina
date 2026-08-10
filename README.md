@@ -119,4 +119,5 @@ Sem hardware? Use o **Virtual Arduino (Mock)** — mesma lógica de histerese do
 
 ## License / Licença
 
-Em definição — consulte o mantenedor antes de redistribuir (see `PLANO_GITHUB.md`).
+Distribuído sob a **Licença MIT** — uso livre para fins educacionais e comerciais, com manutenção dos créditos (ver `LICENSE`).
+Distributed under the **MIT License** — free for educational and commercial use, with attribution (see `LICENSE`).
