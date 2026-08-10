@@ -8,6 +8,12 @@
 
 ![Simulador de Ambiência Equina — cena 3D do estábulo em tempo real](screenshot.png)
 
+## 📦 Download / Instaladores Windows
+
+Baixe o app desktop pronto, sem compilar nada: [**Release v1.0.0**](https://github.com/EfraimAfernandes/simulador-ambiencia-equina/releases) — instalador `.exe` (NSIS) e `.msi`.
+
+Download the ready-to-use Windows desktop app (no compilation needed): [**Release v1.0.0**](https://github.com/EfraimAfernandes/simulador-ambiencia-equina/releases) — `.exe` (NSIS) and `.msi` installers.
+
 ---
 
 ## 🇬🇧 English
