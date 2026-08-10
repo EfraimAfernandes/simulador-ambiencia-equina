@@ -6,6 +6,8 @@
 > **Autores / Authors:** Efraim Almeida Fernandes · Hallison Bittencourt Santos · Geovana Bertoldo de Souza Alves
 > **Orientador / Advisor:** Prof. Jofran Luiz de Oliveira
 
+![Simulador de Ambiência Equina — cena 3D do estábulo em tempo real](screenshot.png)
+
 ---
 
 ## 🇬🇧 English
